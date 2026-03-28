@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#define FILTERCPP_PLOT
 #include "../filtercpp.h"
-#include "../plot.hpp"
 
 const double dt = 0.05;
 const double gL = 9.81;
@@ -79,10 +79,10 @@ int main() {
     ekf.init(x_init);
     ukf.init(x_init);
 
-    kf::StateHistory kf_hist("KF");
-    kf::StateHistory ekf_hist("EKF");
-    kf::StateHistory ukf_hist("UKF");
-    kf::StateHistory truth_hist("Truth");
+    filtercpp::StateHistory kf_hist("KF");
+    filtercpp::StateHistory ekf_hist("EKF");
+    filtercpp::StateHistory ukf_hist("UKF");
+    filtercpp::StateHistory truth_hist("Truth");
 
     Eigen::VectorXd u(1);
     u << 0.0;
@@ -112,7 +112,7 @@ int main() {
         truth_hist.record(t, x_true);
     }
 
-    kf::plot_states(
+    filtercpp::plot_states(
         {truth_hist, kf_hist, ekf_hist, ukf_hist},
         {"Theta (rad)", "Theta_dot (rad/s)"},
         "Pendulum - Filter Comparison",

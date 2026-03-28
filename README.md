@@ -13,7 +13,7 @@ A single-header C++ library for Kalman filtering using Eigen.
 - **UnscentedKalmanFilter** — Unscented Kalman Filter (Merwe scaled sigma points)
 - **RTSSmoother** — Rauch-Tung-Striebel smoother (batch backward pass over KF output)
 - **Single header** — just copy `filtercpp.h` and include it
-- Optional **plotting** via matplotlibcpp (`plot.hpp` / `plot.cpp`)
+- Optional **plotting** built in — `#define FILTERCPP_PLOT` before including to enable
 
 Everything lives in the `filtercpp` namespace.
 
@@ -161,21 +161,22 @@ auto result = smoother.get_state(Xs, Ps, timestep);
 
 ## Plotting
 
-`plot.hpp` / `plot.cpp` provide a `StateHistory` recorder and plotting functions built on matplotlibcpp. Since matplotlibcpp links against Python, `plot.cpp` must be compiled alongside your code.
+Plotting is built into `filtercpp.h` behind an opt-in preprocessor guard. Define `FILTERCPP_PLOT` before including to enable it. Since matplotlibcpp links against Python, you need to add Python flags when compiling.
 
 ```bash
 g++ -std=c++17 -I/usr/include/eigen3 $(python3-config --includes) \
-    your_file.cpp plot.cpp \
+    your_file.cpp \
     $(python3-config --ldflags --embed) -o your_program
 ```
 
 ### Recording history
 
 ```cpp
-#include "plot.hpp"
+#define FILTERCPP_PLOT
+#include "filtercpp.h"
 
-kf::StateHistory kf_hist("KF");
-kf::StateHistory truth_hist("Truth");
+filtercpp::StateHistory kf_hist("KF");
+filtercpp::StateHistory truth_hist("Truth");
 
 for (int i = 0; i < steps; i++) {
     filter.predict(u);
@@ -191,7 +192,7 @@ for (int i = 0; i < steps; i++) {
 `plot_states` creates one figure per state dimension, comparing all provided histories side by side.
 
 ```cpp
-kf::plot_states(
+filtercpp::plot_states(
     {truth_hist, kf_hist, ekf_hist, ukf_hist},
     {"Position", "Velocity"},   // state labels (optional)
     "Filter Comparison",        // title
@@ -203,13 +204,13 @@ kf::plot_states(
 To plot a single state dimension from one filter:
 
 ```cpp
-kf::plot_state(kf_hist, 0 /*state index*/);
+filtercpp::plot_state(kf_hist, 0 /*state index*/);
 ```
 
 To overlay raw measurements:
 
 ```cpp
-kf::plot_measurements(timestamps, measurements, {"position meas"});
+filtercpp::plot_measurements(timestamps, measurements, {"position meas"});
 ```
 
 ## API Reference
@@ -256,7 +257,7 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 
 **`Result` fields:** `x` (smoothed states), `P` (smoothed covariances), `K` (smoother gains), `Pp` (predicted covariances)
 
-### `kf::StateHistory` (plot.hpp)
+### `filtercpp::StateHistory` (requires `FILTERCPP_PLOT`)
 
 | Method | Description |
 |---|---|
@@ -264,6 +265,14 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 | `record(t, x)` | Record state at time `t` |
 | `record(t, x, P)` | Record state and covariance at time `t` |
 | `clear()` | Clear all recorded data |
+
+### Plotting functions (require `FILTERCPP_PLOT`)
+
+| Function | Description |
+|---|---|
+| `plot_states(histories, state_labels, title, show_covariance, save_prefix)` | One figure per state dimension, comparing all histories side by side |
+| `plot_state(history, state_idx, label, show_covariance)` | Plot a single state dimension from one filter |
+| `plot_measurements(timestamps, measurements, labels)` | Overlay raw measurements as scatter points |
 
 ## Examples
 
@@ -275,7 +284,7 @@ Runs KF, EKF, and UKF on a pendulum (state: `[theta, theta_dot]`, measurement: `
 
 ```bash
 g++ -std=c++17 -I/usr/include/eigen3 $(python3-config --includes) \
-    examples/plot_test.cpp plot.cpp \
+    examples/plot_test.cpp \
     $(python3-config --ldflags --embed) \
     -o examples/plot_test
 
@@ -302,7 +311,7 @@ g++ -std=c++17 -I/usr/include/eigen3 examples/test_ukf.cpp -o examples/test_ukf
 
 ```bash
 g++ -std=c++17 -I/usr/include/eigen3 $(python3-config --includes) \
-    examples/test_rts.cpp plot.cpp \
+    examples/test_rts.cpp \
     $(python3-config --ldflags --embed) \
     -o examples/test_rts
 
@@ -315,10 +324,16 @@ Saves `rts_comparison_0.png` and `rts_comparison_1.png`.
 
 ```
 kalman-filter-cpp/
-├── filtercpp.h         # Single-header library (KF, EKF, UKF, RTSSmoother)
-├── plot.hpp            # Plotting interface (requires plot.cpp)
-├── plot.cpp            # Plotting implementation
+├── filtercpp.h         # Single-header library (KF, EKF, UKF, RTSSmoother, plotting)
+├── matplotlibcpp.h     # matplotlibcpp vendored header
 ├── src/                # Original split .hpp/.cpp sources + matplotlibcpp.h
+│   ├── kf.hpp/cpp
+│   ├── ekf.hpp/cpp
+│   ├── ukf.hpp/cpp
+│   ├── rts.hpp/cpp
+│   ├── sigma_points.hpp/cpp
+│   ├── plot.hpp/cpp
+│   └── matplotlibcpp.h
 └── examples/
     ├── plot_test.cpp   # KF vs EKF vs UKF on nonlinear pendulum with plots
     ├── test_ekf.cpp    # EKF on nonlinear pendulum

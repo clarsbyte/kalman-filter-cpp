@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#define FILTERCPP_PLOT
 #include "../filtercpp.h"
-#include "../plot.hpp"
 
 const double dt = 0.1;
 
@@ -45,8 +45,8 @@ int main() {
     std::vector<Eigen::VectorXd> Xs;
     std::vector<Eigen::MatrixXd> Ps;
 
-    kf::StateHistory kf_hist("KF");
-    kf::StateHistory truth_hist("Truth");
+    filtercpp::StateHistory kf_hist("KF");
+    filtercpp::StateHistory truth_hist("Truth");
 
     int steps = 50;
     for (int i = 0; i < steps; i++) {
@@ -70,12 +70,12 @@ int main() {
     filtercpp::RTSSmoother smoother(F, Q);
     filtercpp::RTSSmoother::Result result = smoother.smooth(Xs, Ps);
 
-    kf::StateHistory rts_hist("RTS");
+    filtercpp::StateHistory rts_hist("RTS");
     for (int i = 0; i < steps; i++) {
         rts_hist.record(i * dt, result.x[i], result.P[i]);
     }
 
-    kf::plot_states(
+    filtercpp::plot_states(
         {truth_hist, kf_hist, rts_hist},
         {"Position", "Velocity"},
         "KF vs RTS Smoother",

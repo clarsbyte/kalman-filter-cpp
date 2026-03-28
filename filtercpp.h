@@ -5,15 +5,24 @@
 //
 // Filters:  KalmanFilter, ExtendedKalmanFilter, UnscentedKalmanFilter
 // Smoother: RTSSmoother
+// Plotting: StateHistory, plot_states, plot_state, plot_measurements
+//           (enabled by #define FILTERCPP_PLOT before including this header)
 //
 // All classes live in the filtercpp namespace.
-// Only dependency: Eigen3
+// Core dependency: Eigen3
+// Plot dependency: matplotlibcpp (Python 3 + matplotlib)
 
 
 #include <Eigen/Dense>
 #include <cmath>
 #include <functional>
 #include <vector>
+
+#ifdef FILTERCPP_PLOT
+#include "src/matplotlibcpp.h"
+#include <string>
+#include <map>
+#endif
 
 namespace filtercpp {
 
@@ -332,3 +341,136 @@ private:
 };
 
 }  // namespace filtercpp
+
+
+// ── Plotting utilities (opt-in: #define FILTERCPP_PLOT before including) ──
+
+#ifdef FILTERCPP_PLOT
+
+namespace filtercpp {
+namespace plt = matplotlibcpp;
+
+struct StateHistory {
+    std::string name;
+    std::vector<double> timestamps;
+    std::vector<Eigen::VectorXd> states;
+    std::vector<Eigen::MatrixXd> covariances;
+
+    StateHistory(const std::string& name) : name(name) {}
+
+    void record(double t, const Eigen::VectorXd& x) {
+        timestamps.push_back(t);
+        states.push_back(x);
+    }
+
+    void record(double t, const Eigen::VectorXd& x, const Eigen::MatrixXd& P) {
+        timestamps.push_back(t);
+        states.push_back(x);
+        covariances.push_back(P);
+    }
+
+    void clear() {
+        timestamps.clear();
+        states.clear();
+        covariances.clear();
+    }
+};
+
+inline void plot_states(const std::vector<StateHistory>& histories,
+                        const std::vector<std::string>& state_labels = {},
+                        const std::string& title = "State Estimation History",
+                        bool show_covariance = true,
+                        const std::string& save_prefix = "") {
+    if (histories.empty() || histories[0].states.empty()) return;
+
+    int n = histories[0].states[0].size();
+
+    for (int si = 0; si < n; si++) {
+        plt::figure();
+
+        for (const auto& hist : histories) {
+            std::vector<double> vals;
+            for (const auto& s : hist.states)
+                vals.push_back(s(si));
+            plt::named_plot(hist.name, hist.timestamps, vals);
+
+            if (show_covariance && !hist.covariances.empty()) {
+                std::vector<double> upper, lower;
+                for (size_t i = 0; i < hist.states.size(); i++) {
+                    double sigma = std::sqrt(hist.covariances[i](si, si));
+                    upper.push_back(hist.states[i](si) + 2.0 * sigma);
+                    lower.push_back(hist.states[i](si) - 2.0 * sigma);
+                }
+                plt::plot(hist.timestamps, upper, "--");
+                plt::plot(hist.timestamps, lower, "--");
+            }
+        }
+
+        std::string state_label = (si < (int)state_labels.size())
+            ? state_labels[si]
+            : "x[" + std::to_string(si) + "]";
+
+        plt::title(title + " - " + state_label);
+        plt::ylabel(state_label);
+        plt::xlabel("Time");
+        plt::legend();
+
+        if (!save_prefix.empty())
+            plt::save(save_prefix + "_" + std::to_string(si) + ".png");
+    }
+
+    plt::show();
+}
+
+inline void plot_state(const StateHistory& history,
+                       int state_idx = 0,
+                       const std::string& label = "",
+                       bool show_covariance = true) {
+    if (history.states.empty()) return;
+
+    std::vector<double> vals;
+    for (const auto& s : history.states)
+        vals.push_back(s(state_idx));
+
+    std::string plot_label = label.empty() ? history.name : label;
+    plt::named_plot(plot_label, history.timestamps, vals);
+
+    if (show_covariance && !history.covariances.empty()) {
+        std::vector<double> upper, lower;
+        for (size_t i = 0; i < history.states.size(); i++) {
+            double sigma = std::sqrt(history.covariances[i](state_idx, state_idx));
+            upper.push_back(history.states[i](state_idx) + 2.0 * sigma);
+            lower.push_back(history.states[i](state_idx) - 2.0 * sigma);
+        }
+        plt::plot(history.timestamps, upper, "--");
+        plt::plot(history.timestamps, lower, "--");
+    }
+
+    plt::ylabel("x[" + std::to_string(state_idx) + "]");
+    plt::xlabel("Time");
+    plt::legend();
+}
+
+inline void plot_measurements(const std::vector<double>& timestamps,
+                              const std::vector<Eigen::VectorXd>& measurements,
+                              const std::vector<std::string>& labels = {}) {
+    if (measurements.empty()) return;
+
+    int m = measurements[0].size();
+    for (int i = 0; i < m; i++) {
+        std::vector<double> vals;
+        for (const auto& z : measurements)
+            vals.push_back(z(i));
+
+        std::string label = (i < (int)labels.size())
+            ? labels[i]
+            : "z[" + std::to_string(i) + "]";
+
+        plt::named_plot(label, timestamps, vals, "o");
+    }
+    plt::legend();
+}
+
+}  // namespace filtercpp
+
+#endif  // FILTERCPP_PLOT
