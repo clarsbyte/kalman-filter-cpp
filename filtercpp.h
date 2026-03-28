@@ -343,7 +343,7 @@ private:
 }  // namespace filtercpp
 
 
-// ── Plotting utilities (opt-in: #define FILTERCPP_PLOT before including) ──
+// Plotting utilities (opt-in: #define FILTERCPP_PLOT before including) ──
 
 #ifdef FILTERCPP_PLOT
 
