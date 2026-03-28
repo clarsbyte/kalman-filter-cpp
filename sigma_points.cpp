@@ -33,7 +33,7 @@ sp::SigmaPointsResult sp::SigmaPoints::generate(const Eigen::VectorXd& x, const 
         result.sigma_points.col(i + 1 + n) = x - A.col(i);
     }
 
-    // Compute weights
+    // weights
     result.Wm = Eigen::VectorXd(2 * n + 1);
     result.Wc = Eigen::VectorXd(2 * n + 1);
 
