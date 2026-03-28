@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/matplotlibcpp.h"
+#include "cpp_files/matplotlibcpp.h"
 #include <Eigen/Dense>
 #include <string>
 #include <vector>
