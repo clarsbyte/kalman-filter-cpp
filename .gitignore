@@ -1,2 +1,4 @@
-/tests/test_ekf
-/tests/test_ukf
+/examples/test_ekf
+/examples/test_ukf
+/examples/plot_test
+/examples/test_rts
