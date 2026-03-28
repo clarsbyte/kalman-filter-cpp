@@ -18,7 +18,7 @@ A header-only C++ library implementing the Kalman Filter, Extended Kalman Filter
 
 For plotting only:
 - Python 3 with [matplotlib](https://matplotlib.org)
-- matplotlibcpp (`src/matplotlibcpp.h` is included)
+- matplotlibcpp (`cpp_files/matplotlibcpp.h` is included)
 
 ## Installation
 
@@ -277,20 +277,69 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 | `record(t, x, P)` | Record state and covariance at time `t` |
 | `clear()` | Clear all recorded data |
 
+## Examples
+
+All examples are in the `examples/` directory. Compile from the repo root.
+
+### `plot_test.cpp` — Filter comparison on a nonlinear pendulum
+
+Runs KF, EKF, and UKF on a pendulum (state: `[theta, theta_dot]`, measurement: `sin(theta)`) and plots all three estimates against ground truth. Demonstrates how the linear KF diverges at large angles while EKF and UKF track correctly.
+
+```bash
+g++ -std=c++17 -I/usr/include/eigen3 $(python3-config --includes) \
+    examples/plot_test.cpp plot.cpp \
+    $(python3-config --ldflags --embed) \
+    -o examples/plot_test
+
+./examples/plot_test
+```
+
+Saves `kf_comparison_0.png` (theta) and `kf_comparison_1.png` (theta_dot).
+
+### `test_ekf.cpp` — EKF on a nonlinear pendulum
+
+```bash
+g++ -std=c++17 -I/usr/include/eigen3 examples/test_ekf.cpp -o examples/test_ekf
+./examples/test_ekf
+```
+
+### `test_ukf.cpp` — UKF on a nonlinear pendulum
+
+```bash
+g++ -std=c++17 -I/usr/include/eigen3 examples/test_ukf.cpp -o examples/test_ukf
+./examples/test_ukf
+```
+
+### `test_rts.cpp` — KF forward pass + RTS backward pass with plotting
+
+```bash
+g++ -std=c++17 -I/usr/include/eigen3 $(python3-config --includes) \
+    examples/test_rts.cpp plot.cpp \
+    $(python3-config --ldflags --embed) \
+    -o examples/test_rts
+
+./examples/test_rts
+```
+
+Saves `rts_comparison_0.png` and `rts_comparison_1.png`.
+
 ## Project Structure
 
 ```
 kalman-filter-cpp/
-├── kf.hpp             # Kalman Filter (header-only)
-├── ekf.hpp            # Extended Kalman Filter (header-only)
-├── ukf.hpp            # Unscented Kalman Filter (header-only)
-├── sigma_points.hpp   # Merwe scaled sigma points (header-only, used by ukf.hpp)
-├── rts.hpp            # RTS Smoother (header-only)
-├── plot.hpp           # Plotting interface (requires plot.cpp)
-├── plot.cpp           # Plotting implementation
-├── src/               # Original split .hpp/.cpp sources
+├── kf.hpp              # Kalman Filter (header-only)
+├── ekf.hpp             # Extended Kalman Filter (header-only)
+├── ukf.hpp             # Unscented Kalman Filter (header-only)
+├── sigma_points.hpp    # Merwe scaled sigma points (header-only, used by ukf.hpp)
+├── rts.hpp             # RTS Smoother (header-only)
+├── plot.hpp            # Plotting interface (requires plot.cpp)
+├── plot.cpp            # Plotting implementation
+├── cpp_files/
+│   └── matplotlibcpp.h # Third-party Python/matplotlib C++ bindings
+├── src/                # Original split .hpp/.cpp sources
 └── examples/
-    ├── test_ekf.cpp   # EKF on nonlinear pendulum
-    ├── test_ukf.cpp   # UKF on nonlinear pendulum
-    └── test_rts.cpp   # KF + RTS smoother with plotting
+    ├── plot_test.cpp   # KF vs EKF vs UKF on nonlinear pendulum with plots
+    ├── test_ekf.cpp    # EKF on nonlinear pendulum
+    ├── test_ukf.cpp    # UKF on nonlinear pendulum
+    └── test_rts.cpp    # KF + RTS smoother with plotting
 ```
