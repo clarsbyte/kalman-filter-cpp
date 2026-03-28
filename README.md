@@ -334,8 +334,6 @@ kalman-filter-cpp/
 ├── rts.hpp             # RTS Smoother (header-only)
 ├── plot.hpp            # Plotting interface (requires plot.cpp)
 ├── plot.cpp            # Plotting implementation
-├── cpp_files/
-│   └── matplotlibcpp.h # Third-party Python/matplotlib C++ bindings
 ├── src/                # Original split .hpp/.cpp sources
 └── examples/
     ├── plot_test.cpp   # KF vs EKF vs UKF on nonlinear pendulum with plots
