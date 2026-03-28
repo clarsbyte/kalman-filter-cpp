@@ -1,10 +1,7 @@
-#include <Eigen/Dense>
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
-#include "../kf.hpp"
-#include "../ekf.hpp"
-#include "../ukf.hpp"
+#include "../filtercpp.h"
 #include "../plot.hpp"
 
 const double dt = 0.05;
@@ -65,13 +62,13 @@ int main() {
     Eigen::MatrixXd R = Eigen::MatrixXd::Identity(1, 1) * 0.05;
 
     // KF
-    kf::KalmanFilter kf_filter(make_F_linear(), Eigen::MatrixXd::Zero(2, 1), make_H_linear(), P, R, Q);
+    filtercpp::KalmanFilter kf_filter(make_F_linear(), Eigen::MatrixXd::Zero(2, 1), make_H_linear(), P, R, Q);
 
     // EKF 
-    kf::ExtendedKalmanFilter ekf(f_pendulum, F_jacobian, h_nonlinear, H_jacobian, P, R, Q);
+    filtercpp::ExtendedKalmanFilter ekf(f_pendulum, F_jacobian, h_nonlinear, H_jacobian, P, R, Q);
 
     // UKF 
-    kf::UnscentedKalmanFilter ukf(f_pendulum, h_nonlinear, P, R, Q);
+    filtercpp::UnscentedKalmanFilter ukf(f_pendulum, h_nonlinear, P, R, Q);
 
     Eigen::VectorXd x_true(2);
     x_true << 1.2, 0.0;

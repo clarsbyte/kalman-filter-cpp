@@ -1,9 +1,7 @@
-#include <Eigen/Dense>
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
-#include "../kf.hpp"
-#include "../rts.hpp"
+#include "../filtercpp.h"
 #include "../plot.hpp"
 
 const double dt = 0.1;
@@ -31,7 +29,7 @@ int main() {
     Eigen::MatrixXd Q = Eigen::MatrixXd::Identity(2, 2) * 0.01;
     Eigen::MatrixXd R = Eigen::MatrixXd::Identity(1, 1) * 2.0;  // noisy measurements
 
-    kf::KalmanFilter filter(F, B, H, P, R, Q);
+    filtercpp::KalmanFilter filter(F, B, H, P, R, Q);
 
     Eigen::VectorXd x_true(2);
     x_true << 0.0, 1.0;
@@ -69,8 +67,8 @@ int main() {
     }
 
     // RTS backward pass
-    rts::Smoother smoother(F, Q);
-    rts::Smoother::Result result = smoother.smooth(Xs, Ps);
+    filtercpp::RTSSmoother smoother(F, Q);
+    filtercpp::RTSSmoother::Result result = smoother.smooth(Xs, Ps);
 
     kf::StateHistory rts_hist("RTS");
     for (int i = 0; i < steps; i++) {

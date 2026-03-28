@@ -1,7 +1,6 @@
-#include <Eigen/Dense>
 #include <iostream>
 #include <cmath>
-#include "../ukf.hpp"
+#include "../filtercpp.h"
 
 // State: x = [theta, theta_dot]
 // pendulum with dt=0.1s, g/L=9.81
@@ -30,7 +29,7 @@ int main() {
     Eigen::MatrixXd Q = Eigen::MatrixXd::Identity(2, 2) * 0.01;
     Eigen::MatrixXd R = Eigen::MatrixXd::Identity(1, 1) * 0.05;
 
-    kf::UnscentedKalmanFilter ukf(f, h, P, R, Q);
+    filtercpp::UnscentedKalmanFilter ukf(f, h, P, R, Q);
 
     Eigen::VectorXd x_true(2);
     x_true << 0.5, 0.0;

@@ -1,15 +1,21 @@
-# kalman-filter-cpp
+# filtercpp
 
-A header-only C++ library implementing the Kalman Filter, Extended Kalman Filter, Unscented Kalman Filter, and Rauch-Tung-Striebel smoother using Eigen.
+A single-header C++ library for Kalman filtering using Eigen.
+
+```cpp
+#include "filtercpp.h"
+```
 
 ## Features
 
-- **KF** — Linear Kalman Filter
-- **EKF** — Extended Kalman Filter (user-supplied Jacobians)
-- **UKF** — Unscented Kalman Filter (Merwe scaled sigma points)
-- **RTS** — Rauch-Tung-Striebel smoother (batch backward pass over KF output)
-- **Header-only** — copy the headers and include, no build step required
+- **KalmanFilter** — Linear Kalman Filter
+- **ExtendedKalmanFilter** — Extended Kalman Filter (user-supplied Jacobians)
+- **UnscentedKalmanFilter** — Unscented Kalman Filter (Merwe scaled sigma points)
+- **RTSSmoother** — Rauch-Tung-Striebel smoother (batch backward pass over KF output)
+- **Single header** — just copy `filtercpp.h` and include it
 - Optional **plotting** via matplotlibcpp (`plot.hpp` / `plot.cpp`)
+
+Everything lives in the `filtercpp` namespace.
 
 ## Dependencies
 
@@ -18,21 +24,11 @@ A header-only C++ library implementing the Kalman Filter, Extended Kalman Filter
 
 For plotting only:
 - Python 3 with [matplotlib](https://matplotlib.org)
-- matplotlibcpp (`cpp_files/matplotlibcpp.h` is included)
+- matplotlibcpp (`src/matplotlibcpp.h` is included)
 
 ## Installation
 
-Copy the headers you need into your project:
-
-```
-kf.hpp             # Kalman Filter
-ekf.hpp            # Extended Kalman Filter
-ukf.hpp            # Unscented Kalman Filter
-sigma_points.hpp   # required by ukf.hpp
-rts.hpp            # RTS Smoother
-```
-
-Then compile with Eigen on the include path:
+Copy `filtercpp.h` into your project and compile with Eigen on the include path:
 
 ```bash
 g++ -std=c++17 -I/usr/include/eigen3 your_file.cpp -o your_program
@@ -45,32 +41,26 @@ g++ -std=c++17 -I/usr/include/eigen3 your_file.cpp -o your_program
 State: `x = [position, velocity]`, measurement: position only.
 
 ```cpp
-#include "kf.hpp"
+#include "filtercpp.h"
 
-// System dynamics: x_{k+1} = F*x_k + B*u_k
 Eigen::MatrixXd F(2, 2);
 F << 1, dt,
      0,  1;
 
 Eigen::MatrixXd B = Eigen::MatrixXd::Zero(2, 1);
 
-// Measurement model: z = H*x
 Eigen::MatrixXd H(1, 2);
 H << 1, 0;
 
-Eigen::MatrixXd P = Eigen::MatrixXd::Identity(2, 2) * 1.0;  // initial covariance
-Eigen::MatrixXd Q = Eigen::MatrixXd::Identity(2, 2) * 0.01; // process noise
-Eigen::MatrixXd R = Eigen::MatrixXd::Identity(1, 1) * 0.5;  // measurement noise
+Eigen::MatrixXd P = Eigen::MatrixXd::Identity(2, 2) * 1.0;
+Eigen::MatrixXd Q = Eigen::MatrixXd::Identity(2, 2) * 0.01;
+Eigen::MatrixXd R = Eigen::MatrixXd::Identity(1, 1) * 0.5;
 
-kf::KalmanFilter filter(F, B, H, P, R, Q);
+filtercpp::KalmanFilter filter(F, B, H, P, R, Q);
 
 Eigen::VectorXd x0(2);
 x0 << 0.0, 1.0;
 filter.init(x0);
-
-Eigen::VectorXd u = Eigen::VectorXd::Zero(1);
-Eigen::VectorXd z(1);
-z << measurement;
 
 filter.predict(u);
 filter.update(z);
@@ -84,7 +74,7 @@ Eigen::MatrixXd P_hat = filter.get_covariance();
 For nonlinear systems. You provide the dynamics function `f`, its Jacobian `F`, the measurement function `h`, and its Jacobian `H`.
 
 ```cpp
-#include "ekf.hpp"
+#include "filtercpp.h"
 
 // Nonlinear pendulum: state = [theta, theta_dot]
 Eigen::VectorXd f(const Eigen::VectorXd& x, const Eigen::VectorXd& /*u*/) {
@@ -101,7 +91,6 @@ Eigen::MatrixXd F(const Eigen::VectorXd& x, const Eigen::VectorXd& /*u*/) {
     return Fmat;
 }
 
-// Nonlinear measurement: observe sin(theta)
 Eigen::VectorXd h(const Eigen::VectorXd& x) {
     Eigen::VectorXd z(1);
     z(0) = std::sin(x(0));
@@ -114,7 +103,7 @@ Eigen::MatrixXd H(const Eigen::VectorXd& x) {
     return Hmat;
 }
 
-kf::ExtendedKalmanFilter ekf(f, F, h, H, P, R, Q);
+filtercpp::ExtendedKalmanFilter ekf(f, F, h, H, P, R, Q);
 ekf.init(x0);
 
 ekf.predict(u);
@@ -126,11 +115,11 @@ ekf.update(z);
 Same nonlinear system as EKF, but no Jacobians required — just `f` and `h`.
 
 ```cpp
-#include "ukf.hpp"
+#include "filtercpp.h"
 
-kf::UnscentedKalmanFilter ukf(f, h, P, R, Q);
+filtercpp::UnscentedKalmanFilter ukf(f, h, P, R, Q);
 // Optional sigma point tuning (defaults work well in most cases):
-// kf::UnscentedKalmanFilter ukf(f, h, P, R, Q, alpha=1e-3, beta=2.0, kappa=0.0);
+// filtercpp::UnscentedKalmanFilter ukf(f, h, P, R, Q, alpha, beta, kappa);
 
 ukf.init(x0);
 
@@ -143,8 +132,7 @@ ukf.update(z);
 Run the KF forward pass first, collect all state estimates and covariances, then run the RTS backward pass over them. The smoother uses future measurements to refine past estimates.
 
 ```cpp
-#include "kf.hpp"
-#include "rts.hpp"
+#include "filtercpp.h"
 
 // Forward pass
 std::vector<Eigen::VectorXd> Xs;
@@ -158,8 +146,8 @@ for (int i = 0; i < steps; i++) {
 }
 
 // Backward pass
-rts::Smoother smoother(F, Q);
-rts::Smoother::Result result = smoother.smooth(Xs, Ps);
+filtercpp::RTSSmoother smoother(F, Q);
+filtercpp::RTSSmoother::Result result = smoother.smooth(Xs, Ps);
 
 // result.x[k] — smoothed state at step k
 // result.P[k] — smoothed covariance at step k
@@ -168,7 +156,7 @@ rts::Smoother::Result result = smoother.smooth(Xs, Ps);
 To smooth only up to a specific timestep:
 
 ```cpp
-rts::Smoother::Result result = smoother.get_state(Xs, Ps, timestep);
+auto result = smoother.get_state(Xs, Ps, timestep);
 ```
 
 ## Plotting
@@ -226,7 +214,7 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 
 ## API Reference
 
-### `kf::KalmanFilter`
+### `filtercpp::KalmanFilter`
 
 | Method | Description |
 |---|---|
@@ -238,7 +226,7 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 | `get_state()` | Returns current `x_hat` |
 | `get_covariance()` | Returns current `P` |
 
-### `kf::ExtendedKalmanFilter`
+### `filtercpp::ExtendedKalmanFilter`
 
 | Method | Description |
 |---|---|
@@ -248,7 +236,7 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 | `update(y)` | Updates state using `h` and `H` Jacobian |
 | `get_state()` / `get_covariance()` | Accessors |
 
-### `kf::UnscentedKalmanFilter`
+### `filtercpp::UnscentedKalmanFilter`
 
 | Method | Description |
 |---|---|
@@ -258,17 +246,17 @@ kf::plot_measurements(timestamps, measurements, {"position meas"});
 | `update(z)` | Updates using sigma points propagated through `h` |
 | `get_state()` / `get_covariance()` | Accessors |
 
-### `rts::Smoother`
+### `filtercpp::RTSSmoother`
 
 | Method | Description |
 |---|---|
-| `Smoother(F, Q)` | Constructor |
+| `RTSSmoother(F, Q)` | Constructor |
 | `smooth(Xs, Ps)` | Full backward pass over all KF estimates |
 | `get_state(Xs, Ps, timestep)` | Backward pass up to a given timestep |
 
 **`Result` fields:** `x` (smoothed states), `P` (smoothed covariances), `K` (smoother gains), `Pp` (predicted covariances)
 
-### `kf::StateHistory`
+### `kf::StateHistory` (plot.hpp)
 
 | Method | Description |
 |---|---|
@@ -327,16 +315,10 @@ Saves `rts_comparison_0.png` and `rts_comparison_1.png`.
 
 ```
 kalman-filter-cpp/
-├── kf.hpp              # Kalman Filter (header-only)
-├── ekf.hpp             # Extended Kalman Filter (header-only)
-├── ukf.hpp             # Unscented Kalman Filter (header-only)
-├── sigma_points.hpp    # Merwe scaled sigma points (header-only, used by ukf.hpp)
-├── rts.hpp             # RTS Smoother (header-only)
+├── filtercpp.h         # Single-header library (KF, EKF, UKF, RTSSmoother)
 ├── plot.hpp            # Plotting interface (requires plot.cpp)
 ├── plot.cpp            # Plotting implementation
-├── cpp_files/
-│   └── matplotlibcpp.h # Third-party Python/matplotlib C++ bindings
-├── src/                # Original split .hpp/.cpp sources
+├── src/                # Original split .hpp/.cpp sources + matplotlibcpp.h
 └── examples/
     ├── plot_test.cpp   # KF vs EKF vs UKF on nonlinear pendulum with plots
     ├── test_ekf.cpp    # EKF on nonlinear pendulum
