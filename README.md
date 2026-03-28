@@ -24,7 +24,7 @@ Everything lives in the `filtercpp` namespace.
 
 For plotting only:
 - Python 3 with [matplotlib](https://matplotlib.org)
-- matplotlibcpp (`src/matplotlibcpp.h` is included)
+- matplotlibcpp (`matplotlibcpp.h` is included)
 
 ## Installation
 
